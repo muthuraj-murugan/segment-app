@@ -1,15 +1,9 @@
 import './App.css';
 import React, { useState } from 'react';
-import axios from 'axios';
-import './App.css';
-
-
 
 function App() {
-  const [show, setShow] = useState(false);
-  const [segmentName, setSegmentName] = useState('');
-  const [selectedSchemas, setSelectedSchemas] = useState([]);
-  const [availableSchemas, setAvailableSchemas] = useState([
+
+  const initialAvailableSchemas = [
     { label: 'First Name', value: 'first_name' },
     { label: 'Last Name', value: 'last_name' },
     { label: 'Gender', value: 'gender' },
@@ -17,70 +11,64 @@ function App() {
     { label: 'Account Name', value: 'account_name' },
     { label: 'City', value: 'city' },
     { label: 'State', value: 'state' }
-  ]);
+  ];
+  const [show, setShow] = useState(false);
+  const [segmentName, setSegmentName] = useState('');
+  const [selectedSchemas, setSelectedSchemas] = useState([]);
+  const [availableSchemas, setAvailableSchemas] = useState(initialAvailableSchemas);
   const [currentSchema, setCurrentSchema] = useState('');
 
   const handleShow = () => setShow(true);
-  const handleClose = () => setShow(false);
-
+  const handleClose = () => {
+    setShow(false);
+    setSegmentName('');
+    setSelectedSchemas([]);
+    setAvailableSchemas(initialAvailableSchemas);
+  }
 
   const handleAddSchema = (e) => {
     e.preventDefault();
     const selectedSchema = availableSchemas.find(schema => schema.label === currentSchema);
-    if (selectedSchema && !selectedSchemas.includes(selectedSchema.value)) {
-      setSelectedSchemas(prevSelectedSchemas => {
-        const updatedSchemas = [...prevSelectedSchemas, selectedSchema.label];
-        setAvailableSchemas(prevAvailableSchemas => prevAvailableSchemas.filter(schema => schema.value !== selectedSchema.value));
-        return updatedSchemas;
-      });
+    if (selectedSchema && !selectedSchemas.some(schema => schema.value === selectedSchema.value)) {
+      setSelectedSchemas([...selectedSchemas, selectedSchema]);
+      setAvailableSchemas(availableSchemas.filter(schema => schema.value !== selectedSchema.value));
       setCurrentSchema('');
     }
   };
 
   const handleChangeSchema = (index, newValue) => {
-    const selectedSchema = availableSchemas.find(schema => schema.value === newValue);
-    const addSchema = selectedSchemas.find(schema => schema === newValue)
-    console.log(addSchema, 'addschema', newValue);
-    if (addSchema) {
-      setSelectedSchemas([...availableSchemas, { label: addSchema, value: newValue }])
-    }
-    if (selectedSchema) {
-      setSelectedSchemas(prevSelectedSchemas => {
-        const updatedSchemas = [...prevSelectedSchemas];
-        updatedSchemas[index] = selectedSchema.label;
-        return updatedSchemas;
+    const newSelectedSchema = availableSchemas.find(schema => schema.value === newValue);
+    const oldSelectedSchema = selectedSchemas[index];
+
+    if (newSelectedSchema) {
+      // Update selected schemas
+      const updatedSchemas = [...selectedSchemas];
+      updatedSchemas[index] = newSelectedSchema;
+
+      // Update available schemas
+      setAvailableSchemas(prevAvailableSchemas => {
+        const withoutNewSelected = prevAvailableSchemas.filter(schema => schema.value !== newValue);
+        return [...withoutNewSelected, oldSelectedSchema];
       });
 
+      setSelectedSchemas(updatedSchemas);
     }
   };
-
 
   const handleRemoveSchema = (schemaToRemove) => {
-
-    // Find the schema to be removed
-    const removedSchema = selectedSchemas.find(schema => schema === schemaToRemove);
-
-    // Update selectedSchemas by removing the specified schema
-    setSelectedSchemas(selectedSchemas.filter(schema => schema !== schemaToRemove));
-
-    // Update availableSchemas by adding the removed schema back
-    if (removedSchema) {
-      setAvailableSchemas([...availableSchemas, { label: removedSchema, value: schemaToRemove }]);
-    }
+    setSelectedSchemas(selectedSchemas.filter(schema => schema.value !== schemaToRemove.value));
+    setAvailableSchemas([...availableSchemas, schemaToRemove]);
   };
-
-
-  console.log(selectedSchemas, 'selectedschemas');
-  console.log(availableSchemas, 'availableschema');
 
   const handleSaveSegment = async () => {
     const url = 'https://webhook.site/d1f68490-de4c-4db0-aa8d-022a19027cf7'; // Ensure this is your actual webhook URL
     const data = {
       segment_name: segmentName,
-      schema: selectedSchemas.map(value => ({
-        [value]: availableSchemas.find(schema => schema.value === value)?.label || value
+      schema: selectedSchemas.map(schema => ({
+        [schema.value]: schema.label
       }))
     };
+    console.log(data, 'data');
 
     try {
       const response = await fetch(url, {
@@ -91,23 +79,25 @@ function App() {
         body: JSON.stringify(data)
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-
       const responseData = await response.json();
       console.log('Success:', responseData);
 
       // Clear selected schemas and close dialog
-      setSelectedSchemas([]);
-      handleClose();
-    } catch (error) {
-      console.error('Error:', error);
-    }
-    setSelectedSchemas([])
-    handleClose();
-  };
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
 
+    } catch (error) {
+      console.log('Error:', error);
+    }
+    if (data.segment_name && data.schema.length !== 0) {
+      handleClose();
+      setSegmentName('')
+      setSelectedSchemas([])
+      setAvailableSchemas(initialAvailableSchemas)
+    }
+  };
+  console.log(availableSchemas);
   return (
     <div className="App">
       <div className={`${show ? 'left-hide' : 'left'}`}>
@@ -121,57 +111,72 @@ function App() {
         </div>
       </div>
 
-      {
-        show &&
-        <div className='right'>
-          <div className="header" >
-            <p>
-              Saving Segment
-            </p>
+      {show && (
+        <div className="right">
+          <div className="header">
+            <p>Saving Segment</p>
             <div className="close-btn">
               <p onClick={handleClose}>x</p>
             </div>
           </div>
-          <div className='pop-up'>
-            <div className='saving-segment'>
+          <div className="pop-up">
+            <div className="saving-segment">
               <form>
-                <div className='name-segment'>
+                <div className="name-segment">
                   <p>Enter the name of the Segment</p>
-                  <input type="text" placeholder='Name of the segment'
-                    value={segmentName} onChange={(e) => setSegmentName(e.target.value)} />
-                  <p>To save your segment,you need to add the schemas to build the query</p>
+                  <input
+                    type="text"
+                    placeholder="Name of the segment"
+                    value={segmentName}
+                    onChange={(e) => setSegmentName(e.target.value)}
+                  />
+                  <p>To save your segment, you need to add the schemas to build the query</p>
                 </div>
-                <div className="selected-schemas">
-                  {selectedSchemas && selectedSchemas.map((schema, index) => (
+                <div className={`${selectedSchemas.length !== 0 ? "selected-schemas" : ''}`}>
+                  {selectedSchemas.map((schema, index) => (
                     <div key={index}>
-                      <select value={currentSchema} onChange={(e) => handleChangeSchema(index, e.target.value)}>
-                        <option key={schema}>{schema}</option>
-                        {availableSchemas.filter(schemas => !selectedSchemas.includes(schemas.label)).map(schemaOption => (
-                          <option key={schemaOption.value} value={schemaOption.value}>{schemaOption.label}</option>))}
+                      <select
+                        value={schema.value}
+                        onChange={(e) => handleChangeSchema(index, e.target.value)}
+                      >
+                        <option value={schema.value}>{schema.label}</option>
+                        {availableSchemas.map(schemaOption => (
+                          <option key={schemaOption.value} value={schemaOption.value}>
+                            {schemaOption.label}
+                          </option>
+                        ))}
                       </select>
-                      <button type='button' onClick={() => handleRemoveSchema(schema)}><hr /></button>
+                      <button type="button" onClick={() => handleRemoveSchema(schema)}>
+                        <hr />
+                      </button>
                     </div>
                   ))}
                 </div>
-                <select value={currentSchema} onChange={(e) => setCurrentSchema(e.target.value)}>
-                  <option>Add schema to segment</option>
+                <select
+                  value={currentSchema}
+                  onChange={(e) => setCurrentSchema(e.target.value)}
+                >
+                  <option value="">Add schema to segment</option>
                   {availableSchemas.map(schema => (
-                    <option key={schema.value} value={schema.label}>{schema.label}</option>
+                    <option key={schema.value} value={schema.label}>
+                      {schema.label}
+                    </option>
                   ))}
                 </select>
-                <button onClick={handleAddSchema}>+ Add new schema</button>
+                <div className='add-schema-btn'>
+                  <a href={''} onClick={handleAddSchema}>+ Add new schema</a>
+                </div>
               </form>
-              <div>
+              <div className='close-btns'>
                 <button variant="primary" onClick={handleSaveSegment}>Save the segment</button>
                 <button variant="secondary" onClick={handleClose}>Close</button>
               </div>
             </div>
           </div>
         </div>
-      }
-
+      )}
     </div>
   );
-};
+}
 
 export default App;
