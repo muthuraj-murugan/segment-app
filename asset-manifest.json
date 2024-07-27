@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/segment-app/static/css/main.dafb7fbe.css",
+    "main.js": "/segment-app/static/js/main.0089eeb0.js",
+    "index.html": "/segment-app/index.html",
+    "main.dafb7fbe.css.map": "/segment-app/static/css/main.dafb7fbe.css.map",
+    "main.0089eeb0.js.map": "/segment-app/static/js/main.0089eeb0.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.dafb7fbe.css",
+    "static/js/main.0089eeb0.js"
+  ]
+}
