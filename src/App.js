@@ -61,43 +61,39 @@ function App() {
   };
 
   const handleSaveSegment = async () => {
-    const url = 'https://webhook.site/d1f68490-de4c-4db0-aa8d-022a19027cf7'; // Ensure this is your actual webhook URL
+
+    // const url = 'https://webhook.site/d1f68490-de4c-4db0-aa8d-022a19027cf7';
     const data = {
       segment_name: segmentName,
       schema: selectedSchemas.map(schema => ({
         [schema.value]: schema.label
       }))
     };
-    console.log(data, 'data');
+    const headers = new Headers()
+    headers.append("Content-Type", "application/json")
+    const options = {
+      method: "POST",
+      headers,
+      mode: "cors",
+      body: JSON.stringify(data),
+    }
 
     try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-
-      const responseData = await response.json();
-      console.log('Success:', responseData);
-
-      // Clear selected schemas and close dialog
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+      const pip = await fetch("https://eoin6ty3szga4f5.m.pipedream.net", options)
+      if (pip.ok) {
+        alert('Segment added successfully')
       }
-
+      console.log(pip, 'pip');
     } catch (error) {
       console.log('Error:', error);
     }
     if (data.segment_name && data.schema.length !== 0) {
       handleClose();
-      setSegmentName('')
-      setSelectedSchemas([])
-      setAvailableSchemas(initialAvailableSchemas)
+      setSegmentName('');
+      setSelectedSchemas([]);
+      setAvailableSchemas(initialAvailableSchemas);
     }
   };
-  console.log(availableSchemas);
   return (
     <div className="App">
       <div className={`${show ? 'left-hide' : 'left'}`}>
